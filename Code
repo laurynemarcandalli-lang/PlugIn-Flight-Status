@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Statut de vol Air France • Raccourci Mayday</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, sans-serif; }
+    body { max-width: 560px; margin: 24px auto; padding: 8px; }
+    h1 { font-size: 1.4rem; margin-bottom: 12px; }
+    form { display: grid; gap: 10px; }
+    label { font-weight: 600; }
+    input, select, button {
+      padding: 10px 12px; font-size: 1rem; border: 1px solid #ccc; border-radius: 10px; width: 100%;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .hint { color: #555; font-size: 0.9rem; }
+    .small { font-size: 0.85rem; color: #666; }
+    .actions { display: flex; gap: 10px; }
+    .btn { cursor: pointer; border: none; background: #0033a0; color: white; border-radius: 10px; padding: 12px 14px; }
+    .btn.secondary { background: #eee; color: #111; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>Statut de vol Air France</h1>
+  <p class="hint">Renseignez un numéro de vol Air France, ou bien une route. La date est au format de votre fuseau horaire.</p>
+
+  <form id="flightForm">
+    <label for="flightNo">Numéro de vol Air France</label>
+    <input id="flightNo" name="flightNo" placeholder="Exemple AF83" autocomplete="off" />
+
+    <div class="row">
+      <div>
+        <label for="dep">Aéroport de départ (IATA)</label>
+        <input id="dep" name="dep" placeholder="CDG" maxlength="3" autocomplete="off" />
+      </div>
+      <div>
+        <label for="arr">Aéroport d’arrivée (IATA)</label>
+        <input id="arr" name="arr" placeholder="JFK" maxlength="3" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="date">Date du vol</label>
+        <input id="date" name="date" type="date" />
+      </div>
+      <div>
+        <label for="airline">Compagnie</label>
+        <select id="airline" name="airline">
+          <option value="AF" selected>Air France (AF)</option>
+          <option value="KL">KLM (KL)</option>
+          <option value="TO">Transavia France (TO)</option>
+          <option value="DL">Delta (DL)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Voir le statut</button>
+      <button type="button" id="resetBtn" class="btn secondary">Réinitialiser</button>
+    </div>
+    <p class="small">Astuce. Si “Numéro de vol” est rempli, la recherche par vol sera utilisée. Sinon la recherche par route sera utilisée.</p>
+  </form>
+
+  <script>
+    // Utilise l’heure locale pour préremplir la date
+    const dateInput = document.getElementById('date');
+    if (!dateInput.value) {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('flightForm').reset();
+      // Remet la date du jour
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+    });
+
+    document.getElementById('flightForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const airline = (document.getElementById('airline').value || 'AF').trim().toUpperCase();
+      const flightNoRaw = (document.getElementById('flightNo').value || '').trim().toUpperCase();
+      const dep = (document.getElementById('dep').value || '').trim().toUpperCase();
+      const arr = (document.getElementById('arr').value || '').trim().toUpperCase();
+
+      const dateStr = document.getElementById('date').value; // yyyy-mm-dd
+      if (!dateStr) {
+        alert('Merci de sélectionner une date');
+        return;
+      }
+      const [year, monthStr, dayStr] = dateStr.split('-'); // strings
+      const yearNum = parseInt(year, 10);
+      const monthNum = parseInt(monthStr, 10); // 1..12
+      const dayNum = parseInt(dayStr, 10);
+
+      // Normalise le numéro de vol. Autorise "AF83" ou "83"
+      let airlineCode = airline;
+      let flightNumberDigits = '';
+      if (flightNoRaw) {
+        const m = flightNoRaw.match(/^([A-Z]{1,3})?\s*0*([0-9]{1,4})$/);
+        if (!m) {
+          alert('Numéro de vol invalide. Exemples valides: AF83 ou 83');
+          return;
+        }
+        if (m[1]) airlineCode = m[1].toUpperCase();
+        flightNumberDigits = m[2];
+      }
+
+      // Construit l’URL FlightStats.
+      // 1) Si numéro de vol présent: /v2/flight-tracker/{AIRLINE}/{NUMBER}?year=YYYY&month=M&date=D
+      // 2) Sinon: /v2/flight-tracker/route/{DEP}/{ARR}?year=YYYY&month=M&date=D
+      let target = '';
+      if (flightNumberDigits) {
+        target = `https://www.flightstats.com/v2/flight-tracker/${encodeURIComponent(airlineCode)}/${encodeURIComponent(flightNumberDigits)}?year=${yearNum}&month=${monthNum}&date=${dayNum}`;
+      } else {
+        if (!dep || !arr || dep.length !== 3 || arr.length !== 3) {
+          alert('Merci de saisir les codes IATA départ et arrivée, trois lettres chacun. Exemple CDG et JFK');
+          return;
+        }
+        target = `https://www.flightstats.com/v2/flight-tracker/route/${encodeURIComponent(dep)}/${encodeURIComponent(arr)}?year=${yearNum}&month=${monthNum}&date=${dayNum}`;
+      }
+
+      // Redirection
+      window.location.href = target;
+    });
+  </script>
+</body>
+</html>
