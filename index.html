@@ -20,7 +20,7 @@
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;title&gt;Air France Flight Status • Mayday Plugin&lt;/title&gt;</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;style&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>:root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, sans-serif; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>body { max-width: 560px; margin: 24px auto; padding: 8px; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>body { max-width: 640px; margin: 24px auto; padding: 8px; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>h1 { font-size: 1.4rem; margin-bottom: 12px; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>form { display: grid; gap: 10px; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>label { font-weight: 600; }</p>
@@ -30,9 +30,12 @@
 <p class="p1"><span class="Apple-converted-space">    </span>.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>.hint { color: #555; font-size: 0.9rem; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>.small { font-size: 0.85rem; color: #666; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.actions { display: flex; gap: 10px; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.actions, .providers { display: flex; gap: 10px; flex-wrap: wrap; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>.btn { cursor: pointer; border: none; background: #0033a0; color: white; border-radius: 10px; padding: 12px 14px; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>.btn.secondary { background: #eee; color: #111; border: 1px solid #ccc; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.btn.link { background: #f6f6f6; color: #111; border: 1px solid #ddd; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.outcome { margin-top: 12px; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>a.inline { word-break: break-all; }</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</p>
 <p class="p1">&lt;/head&gt;</p>
 <p class="p1">&lt;body&gt;</p>
@@ -74,11 +77,17 @@
 <p class="p1"><span class="Apple-converted-space">      </span>&lt;button type="submit" class="btn"&gt;Check status&lt;/button&gt;</p>
 <p class="p1"><span class="Apple-converted-space">      </span>&lt;button type="button" id="resetBtn" class="btn secondary"&gt;Reset&lt;/button&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;p class="small"&gt;Tip: If "Flight number" is filled, the flight search will be used. Otherwise, the route search will be used.&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;p class="small"&gt;Tip. If “Flight number” is filled, the flight search will be used. Otherwise the route search will be used.&lt;/p&gt;</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;/form&gt;</p>
 <p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="outcome" id="outcome" hidden&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;p&gt;Opening the status in a new tab. If it’s blocked, try one of these providers:&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="providers" id="providers"&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;p class="small"&gt;Copy link fallback: &lt;a class="inline" id="directUrl" href="#" target="_blank" rel="noopener"&gt;&lt;/a&gt;&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Auto-fill today’s date</p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Prefill today</p>
 <p class="p1"><span class="Apple-converted-space">    </span>const dateInput = document.getElementById('date');</p>
 <p class="p1"><span class="Apple-converted-space">    </span>if (!dateInput.value) {</p>
 <p class="p1"><span class="Apple-converted-space">      </span>const now = new Date();</p>
@@ -88,11 +97,98 @@
 <p class="p1"><span class="Apple-converted-space">      </span>dateInput.value = `${yyyy}-${mm}-${dd}`;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>}</p>
 <p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById('resetBtn').addEventListener('click', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const resetBtn = document.getElementById('resetBtn');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>resetBtn.addEventListener('click', () =&gt; {</p>
 <p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('flightForm').reset();</p>
 <p class="p1"><span class="Apple-converted-space">      </span>const now = new Date();</p>
 <p class="p1"><span class="Apple-converted-space">      </span>const yyyy = now.getFullYear();</p>
 <p class="p1"><span class="Apple-converted-space">      </span>const mm = String(now.getMonth() + 1).padStart(2, '0');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const dd</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const dd = String(now.getDate()).padStart(2, '0');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>dateInput.value = `${yyyy}-${mm}-${dd}`;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('outcome').hidden = true;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('providers').innerHTML = '';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const openNewTab = (url) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Open in new tab to bypass iframe/X-Frame-Options</p>
+<p class="p1"><span class="Apple-converted-space">      </span>window.open(url, '_blank', 'noopener');<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const mkBtn = (label, url) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const b = document.createElement('button');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>b.type = 'button';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>b.className = 'btn link';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>b.textContent = label;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>b.addEventListener('click', () =&gt; openNewTab(url));</p>
+<p class="p1"><span class="Apple-converted-space">      </span>return b;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById('flightForm').addEventListener('submit', (e) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>e.preventDefault();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>const airline = (document.getElementById('airline').value || 'AF').trim().toUpperCase();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const flightNoRaw = (document.getElementById('flightNo').value || '').trim().toUpperCase();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const dep = (document.getElementById('dep').value || '').trim().toUpperCase();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const arr = (document.getElementById('arr').value || '').trim().toUpperCase();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const dateStr = document.getElementById('date').value;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (!dateStr) { alert('Please select a date'); return; }</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const [year, monthStr, dayStr] = dateStr.split('-');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const yearNum = parseInt(year, 10);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const monthNum = parseInt(monthStr, 10);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const dayNum = parseInt(dayStr, 10);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>let airlineCode = airline;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let flightNumberDigits = '';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (flightNoRaw) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const m = flightNoRaw.match(/^([A-Z]{1,3})?\s*0*([0-9]{1,4})$/);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!m) { alert('Invalid flight number. Examples: AF83 or 83'); return; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (m[1]) airlineCode = m[1].toUpperCase();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>flightNumberDigits = m[2];</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>let urlFlightStats = '';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let urlAF = '';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let urlFlightAware = '';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let urlFR24 = '';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (flightNumberDigits) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>urlFlightStats = `https://www.flightstats.com/v2/flight-tracker/${encodeURIComponent(airlineCode)}/${encodeURIComponent(flightNumberDigits)}?year=${yearNum}&amp;month=${monthNum}&amp;date=${dayNum}`;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Alternatives by flight number</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const icao = airlineCode === 'AF' ? 'AFR' : airlineCode; // common mapping, AF -&gt; AFR on many trackers</p>
+<p class="p1"><span class="Apple-converted-space">        </span>urlAF = `https://wwws.airfrance.fr/en/flight-status`; // no stable prefill, open landing</p>
+<p class="p1"><span class="Apple-converted-space">        </span>urlFlightAware = `https://flightaware.com/live/flight/${encodeURIComponent(icao)}${encodeURIComponent(flightNumberDigits)}`;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>urlFR24 = `https://www.flightradar24.com/data/flights/${encodeURIComponent(airlineCode.toLowerCase())}${encodeURIComponent(flightNumberDigits)}`;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!dep || !arr || dep.length !== 3 || arr.length !== 3) {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>alert('Please enter valid IATA codes for departure and arrival (3 letters each, e.g. CDG and JFK)');</p>
+<p class="p1"><span class="Apple-converted-space">          </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>urlFlightStats = `https://www.flightstats.com/v2/flight-tracker/route/${encodeURIComponent(dep)}/${encodeURIComponent(arr)}?year=${yearNum}&amp;month=${monthNum}&amp;date=${dayNum}`;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Alternatives by route</p>
+<p class="p1"><span class="Apple-converted-space">        </span>urlAF = `https://wwws.airfrance.fr/en/flight-status`;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>urlFlightAware = `https://flightaware.com/live/findflight?origin=${encodeURIComponent(dep)}&amp;destination=${encodeURIComponent(arr)}`;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>urlFR24 = `https://www.flightradar24.com/route/${encodeURIComponent(dep)}/${encodeURIComponent(arr)}`;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Open primary target in new tab</p>
+<p class="p1"><span class="Apple-converted-space">      </span>openNewTab(urlFlightStats);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Show alternatives on screen to click if needed</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const outcome = document.getElementById('outcome');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>outcome.hidden = false;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('directUrl').textContent = urlFlightStats;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('directUrl').href = urlFlightStats;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>const providers = document.getElementById('providers');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>providers.innerHTML = '';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>providers.appendChild(mkBtn('Air France', urlAF));</p>
+<p class="p1"><span class="Apple-converted-space">      </span>providers.appendChild(mkBtn('FlightAware', urlFlightAware));</p>
+<p class="p1"><span class="Apple-converted-space">      </span>providers.appendChild(mkBtn('Flightradar24', urlFR24));</p>
+<p class="p1"><span class="Apple-converted-space">      </span>providers.appendChild(mkBtn('FlightStats', urlFlightStats));</p>
+<p class="p1"><span class="Apple-converted-space">    </span>});</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
 </body>
 </html>
